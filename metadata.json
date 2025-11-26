@@ -1,0 +1,5 @@
+{
+  "name": "BentoBuddy AI",
+  "description": "An AI-powered group food ordering system. Upload a menu, let Gemini parse it, and share a link to collect orders from friends or colleagues. Supports simulation of Google Sheets backend.",
+  "requestFramePermissions": []
+}
