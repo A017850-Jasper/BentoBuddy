@@ -2105,36 +2105,42 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
                    <Trash2 size={16} /> 刪除/封存訂單
                 </button>
              </div>
-             
-             {/* QR Code */}
-             <div className="mt-4 pt-4 border-t border-gray-100">
+          </div>
+        )}
+
+        {/* Share Section - Now visible to everyone */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+            <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="bg-white p-2 rounded border border-gray-200">
+                  <div className="bg-white p-2 rounded border border-gray-200 shrink-0">
                     <QRCodeSVG value={window.location.href} size={80} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-700 mb-1">分享連結邀請點餐</p>
+                    <p className="text-sm font-bold text-gray-700 mb-1 flex items-center gap-2">
+                        <Share2 size={16} className="text-brand-500" />
+                        分享連結邀請點餐
+                    </p>
                     <div className="flex gap-2">
                       <input 
                         readOnly 
                         value={window.location.href} 
-                        className="bg-gray-50 border border-gray-200 text-xs p-2 rounded w-48 text-gray-500"
+                        className="bg-gray-50 border border-gray-200 text-xs p-2 rounded w-48 text-gray-500 outline-none"
                       />
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(window.location.href);
                           showAlert("連結已複製");
                         }}
-                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600"
+                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600 transition-colors"
+                        title="複製連結"
                       >
                         <Copy size={16} />
                       </button>
                     </div>
                   </div>
                 </div>
-             </div>
-          </div>
-        )}
+            </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
