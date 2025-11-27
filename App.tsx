@@ -1982,7 +1982,7 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
   const cartTotal = cart.reduce((acc: number, item) => acc + (item.price * item.quantity), 0);
 
   return (
-    <main className="max-w-4xl mx-auto p-4 pb-32">
+    <main className="max-w-6xl mx-auto p-4 pb-32">
        <CustomModal 
         isOpen={modalConfig.isOpen} 
         type={modalConfig.type}
@@ -2137,10 +2137,9 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
         )}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Left Col: Menu & Cart */}
-        <div className="md:col-span-2 space-y-6">
-           {/* Menu */}
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
+        {/* Left Col: Menu */}
+        <div className="lg:col-span-2 space-y-6">
            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
@@ -2170,11 +2169,10 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
            </div>
         </div>
 
-        {/* Right Col: Cart & Group Summary */}
-        <div className="space-y-6">
-           {/* My Cart */}
-           {order.status === 'open' && (
-             <div className="bg-white rounded-xl shadow-lg border-2 border-brand-100 overflow-hidden sticky top-20">
+        {/* Right Col: Cart (Sticky) */}
+        <div className="lg:col-span-1 sticky top-20 space-y-4">
+           {order.status === 'open' ? (
+             <div className="bg-white rounded-xl shadow-lg border-2 border-brand-100 overflow-hidden">
                 <div className="p-3 bg-brand-600 text-white font-bold flex items-center gap-2">
                   <ChefHat size={18} /> 我的餐點
                 </div>
@@ -2243,72 +2241,94 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
                   </button>
                 </div>
              </div>
+           ) : (
+             <div className="bg-gray-100 rounded-xl p-6 text-center text-gray-500 border border-gray-200">
+                <Lock className="mx-auto mb-2" size={24} />
+                <p>此訂單已結單或封存</p>
+             </div>
            )}
-
-           {/* Current Orders List */}
-           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-3 bg-gray-100 text-gray-700 font-bold flex items-center gap-2">
-                 <ClipboardList size={18} /> 大家點了什麼
-              </div>
-              <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
-                 {Object.keys(groupedOrders).length === 0 ? (
-                    <div className="p-8 text-center text-gray-400">目前還沒有人點餐</div>
-                 ) : (
-                    Object.entries(groupedOrders).map(([user, items]: [string, OrderItem[]]) => {
-                      const userTotal = items.reduce((sum: number, i) => sum + (i.price * i.quantity), 0);
-                      const isAllPaid = items.every(i => i.isPaid);
-                      
-                      return (
-                        <div key={user} className="p-4">
-                           <div className="flex justify-between items-center mb-2">
-                             <div className="flex items-center gap-2">
-                               <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">
-                                 {user.substring(0, 1).toUpperCase()}
-                               </div>
-                               <span className="font-bold text-gray-800">{user}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               {isHost && (
-                                 <button 
-                                   onClick={() => toggleUserPayment(user, !isAllPaid)}
-                                   className={`p-1.5 rounded-full ${isAllPaid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                   title="切換付款狀態"
-                                 >
-                                   <DollarSign size={14} />
-                                 </button>
-                               )}
-                               {isAllPaid && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已付款</span>}
-                               <span className="font-mono font-bold text-gray-900">${userTotal}</span>
-                             </div>
-                           </div>
-                           <div className="space-y-1 pl-10">
-                              {items.map(item => (
-                                <div key={item.id} className="text-sm flex justify-between group">
-                                  <div className="text-gray-600">
-                                    {item.quantity} x {item.menuItemName}
-                                    {item.notes && <span className="text-gray-400 text-xs ml-2">({item.notes})</span>}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-gray-400 text-xs">${item.price * item.quantity}</span>
-                                     {isHost && (
-                                       <button 
-                                        onClick={() => deleteItem(item.id)}
-                                        className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                       >
-                                         <X size={12} />
-                                       </button>
-                                     )}
-                                  </div>
-                                </div>
-                              ))}
-                           </div>
-                        </div>
-                      );
-                    })
-                 )}
-              </div>
-           </div>
         </div>
+      </div>
+
+      {/* Group Orders Grid - Moved to bottom for full width visibility */}
+      <div className="mt-8">
+         <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+               <ClipboardList className="text-brand-600" /> 大家點了什麼
+            </h3>
+            <div className="flex gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+               <span>{Object.keys(groupedOrders).length} 人參與</span>
+               <span>•</span>
+               <span>共 {totalQuantity} 份</span>
+               <span>•</span>
+               <span>${totalAmount}</span>
+            </div>
+         </div>
+         
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+             {Object.keys(groupedOrders).length === 0 ? (
+                <div className="col-span-full p-12 text-center bg-white rounded-xl border border-dashed border-gray-300 text-gray-400">
+                   <UtensilsCrossed className="mx-auto mb-2 opacity-50" size={32} />
+                   目前還沒有人點餐
+                </div>
+             ) : (
+                Object.entries(groupedOrders).map(([user, items]: [string, OrderItem[]]) => {
+                  const userTotal = items.reduce((sum: number, i) => sum + (i.price * i.quantity), 0);
+                  const isAllPaid = items.every(i => i.isPaid);
+                  
+                  return (
+                    <div key={user} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                       {/* User Header */}
+                       <div className="bg-gray-50 p-3 border-b border-gray-100 flex justify-between items-center">
+                         <div className="flex items-center gap-2">
+                           <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-sm font-bold">
+                             {user.substring(0, 1).toUpperCase()}
+                           </div>
+                           <span className="font-bold text-gray-800 truncate max-w-[100px]" title={user}>{user}</span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           {isHost && (
+                             <button 
+                               onClick={() => toggleUserPayment(user, !isAllPaid)}
+                               className={`p-1.5 rounded-full ${isAllPaid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                               title="切換付款狀態"
+                             >
+                               <DollarSign size={14} />
+                             </button>
+                           )}
+                           {isAllPaid && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已付</span>}
+                           <span className="font-mono font-bold text-brand-600">${userTotal}</span>
+                         </div>
+                       </div>
+                       
+                       {/* Items List */}
+                       <div className="p-3 space-y-2">
+                          {items.map(item => (
+                            <div key={item.id} className="text-sm flex justify-between items-start group">
+                              <div className="text-gray-700">
+                                <span className="font-bold mr-1">{item.quantity} x</span> 
+                                {item.menuItemName}
+                                {item.notes && <div className="text-gray-400 text-xs">({item.notes})</div>}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                 <span className="text-gray-400 text-xs">${item.price * item.quantity}</span>
+                                 {isHost && (
+                                   <button 
+                                    onClick={() => deleteItem(item.id)}
+                                    className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                   >
+                                     <X size={14} />
+                                   </button>
+                                 )}
+                              </div>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  );
+                })
+             )}
+         </div>
       </div>
     </main>
   );
