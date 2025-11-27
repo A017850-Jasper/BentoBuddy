@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Upload, 
@@ -742,7 +740,7 @@ const ManageShopsPage = ({ goHome }: { goHome: () => void }) => {
               onClick={handleCreate}
               className="mt-4 text-brand-600 font-medium hover:underline"
             >
-              立即新增第一間店家 ->
+              立即新增第一間店家 &rarr;
             </button>
           )}
         </div>
@@ -778,7 +776,7 @@ const ManageShopsPage = ({ goHome }: { goHome: () => void }) => {
               <div className="flex justify-between items-end text-sm pt-3 border-t border-gray-50">
                 <span className="text-gray-500">{shop.items.length} 個品項</span>
                 <span className="text-brand-600 font-medium flex items-center gap-1 text-xs bg-brand-50 px-2 py-1 rounded">
-                  <UtensilsCrossed size={12} /> 平均價格: ${Math.round(shop.items.reduce((acc, i) => acc + i.price, 0) / (shop.items.length || 1))}
+                  <UtensilsCrossed size={12} /> 平均價格: ${Math.round(shop.items.reduce((acc: number, i) => acc + i.price, 0) / (shop.items.length || 1))}
                 </span>
               </div>
             </div>
@@ -824,7 +822,7 @@ const HistoryPage = ({ goHome }: { goHome: () => void }) => {
   };
 
   const getTotalAmount = (order: GroupOrder) => {
-    return (order.orders || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return (order.orders || []).reduce((sum: number, item) => sum + (item.price * item.quantity), 0);
   };
 
   return (
@@ -982,7 +980,7 @@ const Dashboard = ({ onCreateClick, onOpenSettings }: { onCreateClick: () => voi
             onClick={onCreateClick}
             className="text-brand-600 font-medium hover:underline"
           >
-            立即開團 ->
+            立即開團 &rarr;
           </button>
         </div>
       ) : (
@@ -1012,7 +1010,7 @@ const Dashboard = ({ onCreateClick, onOpenSettings }: { onCreateClick: () => voi
                     <div className="flex items-center gap-2 text-brand-600 font-medium">
                       <Target size={16} />
                       <span>
-                        目標: {(order.orders || []).reduce((acc, i) => acc + i.quantity, 0)} / {order.minOrderQuantity} 份
+                        目標: {(order.orders || []).reduce((acc: number, i) => acc + i.quantity, 0)} / {order.minOrderQuantity} 份
                       </span>
                     </div>
                   )}
@@ -1020,7 +1018,7 @@ const Dashboard = ({ onCreateClick, onOpenSettings }: { onCreateClick: () => voi
                     <div className="flex items-center gap-2 text-brand-600 font-medium">
                       <DollarSign size={16} />
                       <span>
-                        目標: ${(order.orders || []).reduce((acc, i) => acc + (i.price * i.quantity), 0)} / ${order.minOrderAmount}
+                        目標: ${(order.orders || []).reduce((acc: number, i) => acc + (i.price * i.quantity), 0)} / ${order.minOrderAmount}
                       </span>
                     </div>
                   )}
@@ -1943,26 +1941,33 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
     Object.entries(grouped).forEach(([name, count]) => {
       text += `- ${name}: ${count}\n`;
     });
-    text += `\n總金額: $${(order.orders || []).reduce((s, i) => s + i.price, 0)}`;
-    navigator.clipboard.writeText(text);
-    showAlert("已複製到剪貼簿");
+    
+    text += `\n總份數: ${Object.values(grouped).reduce((a: number, b: number) => a + b, 0)} 份`;
+    text += `\n總金額: $${(order.orders || []).reduce((acc: number, curr) => acc + (curr.price * curr.quantity), 0)}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert("已複製訂單統計到剪貼簿！");
+    }).catch(() => {
+        showAlert("複製失敗，請手動複製");
+    });
   };
 
-  if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-brand-500" /></div>;
-  if (!order) return <div className="text-center p-10">找不到訂單</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader2 className="animate-spin text-brand-500" size={40} />
+      </div>
+    );
+  }
 
-  const totalAmount = (order.orders || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalQuantity = (order.orders || []).reduce((sum, item) => sum + item.quantity, 0);
-  
-  // Logic for Quantity Goal
-  const targetQuantity = order.minOrderQuantity || 0;
-  const isQuantityMet = targetQuantity > 0 && totalQuantity >= targetQuantity;
-  const quantityProgress = targetQuantity > 0 ? Math.min(100, (totalQuantity / targetQuantity) * 100) : 0;
-
-  // Logic for Amount Goal
-  const targetAmount = order.minOrderAmount || 0;
-  const isAmountMet = targetAmount > 0 && totalAmount >= targetAmount;
-  const amountProgress = targetAmount > 0 ? Math.min(100, (totalAmount / targetAmount) * 100) : 0;
+  if (!order) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold text-gray-800">找不到訂單</h2>
+        <button onClick={goHome} className="text-brand-600 mt-4 hover:underline">回首頁</button>
+      </div>
+    );
+  }
 
   const groupedOrders = (order.orders || []).reduce((acc, curr) => {
     if (!acc[curr.userName]) acc[curr.userName] = [];
@@ -1970,9 +1975,15 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
     return acc;
   }, {} as Record<string, OrderItem[]>);
 
+  const totalAmount = (order.orders || []).reduce((acc: number, i) => acc + (i.price * i.quantity), 0);
+  const totalQuantity = (order.orders || []).reduce((acc: number, i) => acc + i.quantity, 0);
+
+  // Calculate cart total
+  const cartTotal = cart.reduce((acc: number, item) => acc + (item.price * item.quantity), 0);
+
   return (
-    <div className="max-w-4xl mx-auto p-4 pb-24">
-      <CustomModal 
+    <main className="max-w-4xl mx-auto p-4 pb-32">
+       <CustomModal 
         isOpen={modalConfig.isOpen} 
         type={modalConfig.type}
         message={modalConfig.message} 
@@ -1981,474 +1992,408 @@ const OrderPage = ({ orderId, goHome }: { orderId: string, goHome: () => void })
       />
 
       {/* Header Info */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
-          <div className="flex-1 mr-4">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{order.shop.name}</h1>
-            <div className="text-sm text-gray-500 space-y-1">
-              <p className="flex items-center gap-2">
-                <Clock size={14} /> {new Date(order.createdAt).toLocaleString()}
-                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                <span className={order.status === 'open' ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                  {order.status === 'open' ? '進行中' : '已結單'}
-                </span>
-              </p>
-              {(order.shop.address || order.shop.phone) && (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-400 text-xs pt-1">
-                  {order.shop.address && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.shop.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 hover:text-brand-600 hover:underline transition-colors"
-                      title="在 Google 地圖查看"
-                    >
-                      <MapPin size={12} /> {order.shop.address}
-                    </a>
-                  )}
-                  {order.shop.phone && <span className="flex items-center gap-1"><Phone size={12} /> {order.shop.phone}</span>}
-                </div>
-              )}
-            </div>
-            
-            {/* Target Progress Bar (Quantity) */}
-            {targetQuantity > 0 && (
-              <div className="mt-4 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
-                    <Target size={14} /> 成團目標 (份數)
-                  </span>
-                  <span className={`text-sm font-bold ${isQuantityMet ? 'text-green-600' : 'text-brand-600'}`}>
-                    {isQuantityMet ? '🎉 已達標！' : `還差 ${targetQuantity - totalQuantity} 份`}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className={`h-2.5 rounded-full transition-all duration-500 ${isQuantityMet ? 'bg-green-500' : 'bg-brand-500'}`} 
-                    style={{ width: `${quantityProgress}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>目前: {totalQuantity} 份</span>
-                  <span>目標: {targetQuantity} 份</span>
-                </div>
-              </div>
-            )}
-
-            {/* Target Progress Bar (Amount) */}
-            {targetAmount > 0 && (
-              <div className="mt-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
-                    <DollarSign size={14} /> 成團目標 (金額)
-                  </span>
-                  <span className={`text-sm font-bold ${isAmountMet ? 'text-green-600' : 'text-brand-600'}`}>
-                    {isAmountMet ? '🎉 已達標！' : `還差 $${targetAmount - totalAmount}`}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className={`h-2.5 rounded-full transition-all duration-500 ${isAmountMet ? 'bg-green-500' : 'bg-brand-500'}`} 
-                    style={{ width: `${amountProgress}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>目前: ${totalAmount}</span>
-                  <span>目標: ${targetAmount}</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              showAlert("連結已複製");
-            }}
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-600 flex-shrink-0"
-            title="分享連結"
-          >
-            <Share2 size={20} />
-          </button>
+           <div>
+             <div className="flex items-center gap-2 mb-1">
+               <h1 className="text-2xl font-bold text-gray-900">{order.shop.name}</h1>
+               <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${order.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                 {order.status === 'open' ? '收單中' : order.status === 'closed' ? '已結單' : '已封存'}
+               </span>
+             </div>
+             <div className="text-sm text-gray-500 space-y-1">
+               {order.shop.address && <p className="flex items-center gap-1"><MapPin size={14} /> {order.shop.address}</p>}
+               {order.shop.phone && <p className="flex items-center gap-1"><Phone size={14} /> {order.shop.phone}</p>}
+             </div>
+           </div>
+           
+           <div className="flex flex-col items-end gap-2">
+             <button 
+               onClick={() => {
+                  if (isHost) {
+                    setIsHost(false);
+                  } else {
+                    setShowHostLogin(true);
+                  }
+               }}
+               className={`p-2 rounded-lg transition-colors ${isHost ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:bg-gray-100'}`}
+               title={isHost ? "登出團主" : "團主登入"}
+             >
+               {isHost ? <LogOut size={20} /> : <KeyRound size={20} />}
+             </button>
+           </div>
         </div>
 
-        {/* Host Access Button */}
-        {!isHost && (
-          <button 
-            onClick={() => setShowHostLogin(!showHostLogin)}
-            className="text-xs text-gray-400 hover:text-brand-600 flex items-center gap-1 mb-2"
-          >
-            <KeyRound size={12} /> 團主登入
-          </button>
-        )}
-        
-        {showHostLogin && !isHost && (
-          <div className="flex gap-2 mb-4 max-w-xs">
-            <input 
-              type="password" 
-              placeholder="輸入團主密碼"
-              value={hostPasswordInput}
-              onChange={(e) => setHostPasswordInput(e.target.value)}
-              className="p-2 border rounded text-sm flex-1"
-            />
-            <button onClick={handleHostLogin} className="bg-gray-800 text-white px-3 py-1 rounded text-sm">登入</button>
-          </div>
-        )}
+        {/* Targets */}
+        <div className="flex flex-wrap gap-4 text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">
+           <div className={`flex items-center gap-2 ${order.minOrderQuantity && totalQuantity >= order.minOrderQuantity ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+              <Target size={16} />
+              <span>份數: {totalQuantity} {order.minOrderQuantity ? `/ ${order.minOrderQuantity}` : ''}</span>
+              {order.minOrderQuantity && totalQuantity >= order.minOrderQuantity && <Check size={14} />}
+           </div>
+           <div className={`flex items-center gap-2 ${order.minOrderAmount && totalAmount >= order.minOrderAmount ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+              <DollarSign size={16} />
+              <span>金額: ${totalAmount} {order.minOrderAmount ? `/ ${order.minOrderAmount}` : ''}</span>
+              {order.minOrderAmount && totalAmount >= order.minOrderAmount && <Check size={14} />}
+           </div>
+           <div className="ml-auto text-gray-400 text-xs flex items-center gap-1">
+             <Clock size={12} /> 開團時間: {new Date(order.createdAt).toLocaleString()}
+           </div>
+        </div>
 
-        {/* Host Zone */}
-        {isHost && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-orange-800 flex items-center gap-2">
-                <ChefHat size={18} /> 團主管理區
-              </h3>
-              <button onClick={() => setIsHost(false)} className="text-orange-600 text-xs hover:underline flex items-center gap-1">
-                <LogOut size={12} /> 登出
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {order.status === 'open' ? (
-                <button onClick={() => updateStatus('closed')} className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-red-600 flex items-center gap-1">
-                  <Lock size={14} /> 結單
-                </button>
-              ) : (
-                <button onClick={() => updateStatus('open')} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-green-600 flex items-center gap-1">
-                  <Unlock size={14} /> 重新開團
-                </button>
-              )}
-              <button onClick={copySummary} className="bg-white border border-orange-200 text-orange-700 px-3 py-1.5 rounded-lg text-sm hover:bg-orange-100 flex items-center gap-1">
-                <ClipboardList size={14} /> 複製統計
-              </button>
-              <button onClick={() => updateStatus('archived')} className="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-300 flex items-center gap-1 ml-auto">
-                <Trash2 size={14} /> 刪除訂單
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col md:flex-row gap-6 mt-4">
-          <div className="flex-1 bg-gray-50 rounded-xl p-4 flex items-center justify-center">
-            <QRCodeSVG value={window.location.href} size={120} />
-          </div>
-          <div className="flex-[2]">
-             <div className="grid grid-cols-2 gap-4 text-center">
-               <div className="bg-brand-50 p-3 rounded-lg">
-                 <div className="text-brand-600 text-xs font-bold uppercase mb-1">目前總額</div>
-                 <div className="text-2xl font-bold text-brand-700">${totalAmount}</div>
-               </div>
-               <div className="bg-blue-50 p-3 rounded-lg">
-                 <div className="text-blue-600 text-xs font-bold uppercase mb-1">訂單數量</div>
-                 <div className="text-2xl font-bold text-blue-700">{order.orders?.length || 0}</div>
-               </div>
+        {/* Host Login Modal/Area */}
+        {showHostLogin && (
+          <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-100 animate-in slide-in-from-top-2">
+             <h4 className="font-bold text-orange-800 mb-2 flex items-center gap-2"><Lock size={16} /> 團主驗證</h4>
+             <div className="flex gap-2">
+               <input 
+                 type="password" 
+                 placeholder="輸入團主密碼"
+                 value={hostPasswordInput}
+                 onChange={(e) => setHostPasswordInput(e.target.value)}
+                 className="flex-1 p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none text-sm"
+               />
+               <button 
+                 onClick={handleHostLogin}
+                 className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600"
+               >
+                 登入
+               </button>
+               <button 
+                 onClick={() => setShowHostLogin(false)}
+                 className="text-gray-500 px-3 py-2"
+               >
+                 取消
+               </button>
              </div>
           </div>
-        </div>
+        )}
+
+        {/* Host Controls */}
+        {isHost && (
+          <div className="mt-4 p-4 bg-white border-2 border-orange-100 rounded-xl shadow-sm">
+             <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+               <Settings size={18} className="text-orange-500" /> 團主管理區
+             </h4>
+             <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={copySummary}
+                  className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm"
+                >
+                  <Copy size={16} /> 複製統計
+                </button>
+                <div className="w-px h-8 bg-gray-200 mx-1"></div>
+                {order.status === 'open' ? (
+                  <button 
+                    onClick={() => updateStatus('closed')}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-sm"
+                  >
+                    <Lock size={16} /> 結單 (停止點餐)
+                  </button>
+                ) : (
+                   <button 
+                    onClick={() => updateStatus('open')}
+                    className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm"
+                  >
+                    <Unlock size={16} /> 重新開團
+                  </button>
+                )}
+                <button 
+                   onClick={() => updateStatus('archived')}
+                   className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium text-sm ml-auto"
+                >
+                   <Trash2 size={16} /> 刪除/封存訂單
+                </button>
+             </div>
+             
+             {/* QR Code */}
+             <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white p-2 rounded border border-gray-200">
+                    <QRCodeSVG value={window.location.href} size={80} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-1">分享連結邀請點餐</p>
+                    <div className="flex gap-2">
+                      <input 
+                        readOnly 
+                        value={window.location.href} 
+                        className="bg-gray-50 border border-gray-200 text-xs p-2 rounded w-48 text-gray-500"
+                      />
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          showAlert("連結已複製");
+                        }}
+                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600"
+                      >
+                        <Copy size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Menu Section */}
-        <div>
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <UtensilsCrossed className="text-brand-600" /> 菜單
-          </h2>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-4">
-            <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <input 
-                type="text" 
-                placeholder="輸入您的名字 (送出訂單時使用)..." 
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-              />
-            </div>
-            <div className="max-h-[500px] overflow-y-auto">
-              {order.shop.items.map(item => (
-                <button 
-                  key={item.id}
-                  disabled={submitting || order.status !== 'open'}
-                  onClick={() => addToCart(item)}
-                  className="w-full text-left p-4 border-b border-gray-100 hover:bg-brand-50 transition-colors flex justify-between items-center group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="font-medium text-gray-800">{item.name}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-brand-600">${item.price}</span>
-                    {order.status === 'open' && (
-                      <Plus className="text-gray-300 group-hover:text-brand-500" size={20} />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 text-center">點擊菜單將品項加入暫存區，確認後再一次送出。</p>
-        </div>
-
-        {/* Right Column: Cart + Orders List */}
-        <div className="flex flex-col gap-6">
-          
-          {/* Shopping Cart (New Feature) */}
-          {cart.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md border-2 border-brand-100 p-4 animate-in fade-in slide-in-from-bottom-4">
-              <h3 className="font-bold text-brand-700 mb-3 flex items-center gap-2">
-                <div className="bg-brand-100 p-1.5 rounded-lg"><Plus size={16} /></div>
-                我的暫存清單
-              </h3>
-              <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
-                {cart.map(item => (
-                  <div key={item.id} className="bg-gray-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-800">{item.menuItemName}</div>
-                        <div className="text-xs text-gray-500">${item.price} / 份</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center bg-white border border-gray-200 rounded-lg">
-                          <button 
-                            onClick={() => updateCartItem(item.id, -1)}
-                            className="p-1 hover:bg-gray-100 text-gray-500"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="w-8 text-center font-mono text-sm">{item.quantity}</span>
-                          <button 
-                            onClick={() => updateCartItem(item.id, 1)}
-                            className="p-1 hover:bg-gray-100 text-gray-500"
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                        <button 
-                          onClick={() => removeCartItem(item.id)}
-                          className="text-red-400 hover:text-red-600 p-1"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Note Input */}
-                    <input 
-                      type="text" 
-                      placeholder="備註 (例如: 不要蔥、小辣)..."
-                      value={item.notes || ''}
-                      onChange={(e) => updateCartItemNote(item.id, e.target.value)}
-                      className="w-full text-sm bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-300 text-gray-600 placeholder-gray-300"
-                    />
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Left Col: Menu & Cart */}
+        <div className="md:col-span-2 space-y-6">
+           {/* Menu */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                 <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                   <UtensilsCrossed size={18} className="text-brand-500" /> 菜單
+                 </h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {order.shop.items.map(item => (
+                  <div key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors group">
+                     <div>
+                       <div className="font-bold text-gray-800">{item.name}</div>
+                       <div className="text-gray-500 font-mono">${item.price}</div>
+                     </div>
+                     {order.status === 'open' ? (
+                       <button 
+                         onClick={() => addToCart(item)}
+                         className="p-2 bg-brand-50 text-brand-600 rounded-full hover:bg-brand-500 hover:text-white transition-colors active:scale-90"
+                       >
+                         <Plus size={20} />
+                       </button>
+                     ) : (
+                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">已結單</span>
+                     )}
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center pt-3 border-t border-brand-100">
-                <div className="text-sm font-bold text-gray-600">
-                  總計: <span className="text-brand-600 text-lg">${cart.reduce((sum, i) => sum + (i.price * i.quantity), 0)}</span>
-                </div>
-                <button 
-                  onClick={handleSubmitOrder}
-                  disabled={submitting}
-                  className="bg-brand-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700 shadow-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  {submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                  送出訂單
-                </button>
-              </div>
-            </div>
-          )}
+           </div>
+        </div>
 
-          {/* Orders List Section */}
-          <div>
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <ClipboardList className="text-blue-600" /> 
-              已送出訂單
-              <span className="text-xs font-normal text-gray-500 ml-auto bg-gray-100 px-2 py-1 rounded-full">
-                共 {order.orders?.length || 0} 份
-              </span>
-            </h2>
-            <div className="space-y-4">
-              {/* Fix: Explicitly type items to avoid 'unknown' type error */}
-              {Object.entries(groupedOrders).map(([user, items]) => {
-                const isPaid = items.every(i => i.isPaid);
-                return (
-                  <div key={user} className={`bg-white rounded-xl shadow-sm border p-4 ${isPaid ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${isPaid ? 'bg-green-500 text-white' : 'bg-blue-100 text-blue-600'}`}>
-                          {isPaid ? <Check size={14} /> : user.charAt(0)}
-                        </div>
-                        {user}
-                      </h3>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-gray-600">
-                          ${items.reduce((sum, i) => sum + (i.price * i.quantity), 0)}
-                        </span>
-                        
-                        {/* Host Payment Toggle */}
-                        {isHost && (
-                          <button 
-                            onClick={() => toggleUserPayment(user, !isPaid)}
-                            className={`text-xs px-2 py-1 rounded border flex items-center gap-1 ${isPaid ? 'bg-white text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
-                          >
-                            <DollarSign size={12} />
-                            {isPaid ? "已收款" : "未收款"}
-                          </button>
-                        )}
-                        {!isHost && isPaid && (
-                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-medium">已付款</span>
-                        )}
-                      </div>
+        {/* Right Col: Cart & Group Summary */}
+        <div className="space-y-6">
+           {/* My Cart */}
+           {order.status === 'open' && (
+             <div className="bg-white rounded-xl shadow-lg border-2 border-brand-100 overflow-hidden sticky top-20">
+                <div className="p-3 bg-brand-600 text-white font-bold flex items-center gap-2">
+                  <ChefHat size={18} /> 我的餐點
+                </div>
+                
+                <div className="p-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">您的暱稱</label>
+                    <input 
+                      type="text" 
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="請輸入名字 (例: Alex)"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                    />
+                  </div>
+
+                  {cart.length === 0 ? (
+                    <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-lg">
+                      尚未選擇餐點
                     </div>
-                    <div className="space-y-2">
-                      {items.map((item) => (
-                        <div key={item.id} className="flex flex-col text-sm text-gray-600">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                               <span className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">x{item.quantity}</span>
-                               <span>{item.menuItemName}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span>${item.price * item.quantity}</span>
-                              {isHost && (
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteItem(item.id);
-                                  }}
-                                  className="text-red-400 hover:text-red-600 p-1 rounded"
-                                  title="刪除此項目"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          {/* Display Notes */}
-                          {item.notes && (
-                            <div className="text-xs text-gray-400 ml-8 mt-0.5 flex items-center gap-1">
-                              <MessageSquare size={10} /> {item.notes}
-                            </div>
-                          )}
+                  ) : (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {cart.map(item => (
+                        <div key={item.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 relative group">
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="font-bold text-sm text-gray-800">{item.menuItemName}</span>
+                              <button 
+                                onClick={() => removeCartItem(item.id)}
+                                className="text-gray-300 hover:text-red-500"
+                              >
+                                <X size={14} />
+                              </button>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-1 h-8">
+                                <button onClick={() => updateCartItem(item.id, -1)} className="p-1 hover:text-brand-600"><Minus size={12} /></button>
+                                <span className="text-sm font-mono w-4 text-center">{item.quantity}</span>
+                                <button onClick={() => updateCartItem(item.id, 1)} className="p-1 hover:text-brand-600"><Plus size={12} /></button>
+                              </div>
+                              <span className="font-bold text-brand-600 text-sm">${item.price * item.quantity}</span>
+                           </div>
+                           <input 
+                             type="text"
+                             placeholder="備註 (微辣/加飯...)"
+                             value={item.notes || ''}
+                             onChange={(e) => updateCartItemNote(item.id, e.target.value)}
+                             className="w-full mt-2 bg-transparent text-xs border-b border-gray-200 focus:border-brand-300 outline-none pb-0.5 text-gray-600 placeholder-gray-300"
+                           />
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  <div className="pt-3 border-t border-gray-100 flex justify-between items-center font-bold text-gray-800">
+                    <span>總計</span>
+                    <span className="text-xl">${cartTotal}</span>
                   </div>
-                );
-              })}
-              {(!order.orders || order.orders.length === 0) && (
-                <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
-                  尚無訂單，快來點餐吧！
+
+                  <button 
+                    onClick={handleSubmitOrder}
+                    disabled={submitting || cart.length === 0}
+                    className="w-full py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    {submitting ? <Loader2 className="animate-spin" /> : <Send size={18} />}
+                    送出訂單
+                  </button>
                 </div>
-              )}
-            </div>
-          </div>
+             </div>
+           )}
+
+           {/* Current Orders List */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-gray-100 text-gray-700 font-bold flex items-center gap-2">
+                 <ClipboardList size={18} /> 大家點了什麼
+              </div>
+              <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                 {Object.keys(groupedOrders).length === 0 ? (
+                    <div className="p-8 text-center text-gray-400">目前還沒有人點餐</div>
+                 ) : (
+                    Object.entries(groupedOrders).map(([user, items]: [string, OrderItem[]]) => {
+                      const userTotal = items.reduce((sum: number, i) => sum + (i.price * i.quantity), 0);
+                      const isAllPaid = items.every(i => i.isPaid);
+                      
+                      return (
+                        <div key={user} className="p-4">
+                           <div className="flex justify-between items-center mb-2">
+                             <div className="flex items-center gap-2">
+                               <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">
+                                 {user.substring(0, 1).toUpperCase()}
+                               </div>
+                               <span className="font-bold text-gray-800">{user}</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               {isHost && (
+                                 <button 
+                                   onClick={() => toggleUserPayment(user, !isAllPaid)}
+                                   className={`p-1.5 rounded-full ${isAllPaid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                   title="切換付款狀態"
+                                 >
+                                   <DollarSign size={14} />
+                                 </button>
+                               )}
+                               {isAllPaid && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">已付款</span>}
+                               <span className="font-mono font-bold text-gray-900">${userTotal}</span>
+                             </div>
+                           </div>
+                           <div className="space-y-1 pl-10">
+                              {items.map(item => (
+                                <div key={item.id} className="text-sm flex justify-between group">
+                                  <div className="text-gray-600">
+                                    {item.quantity} x {item.menuItemName}
+                                    {item.notes && <span className="text-gray-400 text-xs ml-2">({item.notes})</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-gray-400 text-xs">${item.price * item.quantity}</span>
+                                     {isHost && (
+                                       <button 
+                                        onClick={() => deleteItem(item.id)}
+                                        className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                       >
+                                         <X size={12} />
+                                       </button>
+                                     )}
+                                  </div>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                      );
+                    })
+                 )}
+              </div>
+           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 
 const App = () => {
-  const [page, setPage] = useState<'home' | 'create' | 'history' | 'order' | 'shops'>('home');
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showSettingsBtn, setShowSettingsBtn] = useState(false);
-  const lastSecretClickRef = useRef<number>(0);
+  const [route, setRoute] = useState('home');
+  const [orderId, setOrderId] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showHiddenFeatures, setShowHiddenFeatures] = useState(false);
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash.startsWith('#order=')) {
-        const id = hash.split('=')[1];
-        if (id) {
-          setOrderId(id);
-          setPage('order');
-        }
+        setOrderId(hash.split('=')[1]);
+        setRoute('order');
       } else if (hash === '#create') {
-        setPage('create');
+        setRoute('create');
       } else if (hash === '#history') {
-        setPage('history');
+        setRoute('history');
       } else if (hash === '#shops') {
-        setPage('shops');
+        setRoute('shops');
       } else {
-        setPage('home');
-        setOrderId(null);
+        setRoute('home');
       }
     };
 
-    handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Initial check
+
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const goHome = () => {
-    window.location.hash = '';
-  };
+  const goHome = () => window.location.hash = '';
 
-  const goToCreate = () => {
-    window.location.hash = '#create';
-  };
-
-  const goToHistory = () => {
-    window.location.hash = '#history';
-  };
-  
-  const goToShops = () => {
-    window.location.hash = '#shops';
-  };
-
-  const handleSecretClick = () => {
-    const now = Date.now();
-    // If double clicked within 500ms
-    if (now - lastSecretClickRef.current < 500) {
-      setShowSettingsBtn(prev => !prev);
-    }
-    lastSecretClickRef.current = now;
+  const toggleHiddenFeatures = () => {
+    setShowHiddenFeatures(prev => !prev);
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-gray-50 text-gray-900 font-sans pb-10 relative">
+    <div className="min-h-screen bg-gray-50 pb-20 font-sans selection:bg-brand-100 selection:text-brand-900 relative">
       <Header 
-        onOpenSettings={() => setShowSettings(true)} 
+        onOpenSettings={() => setIsSettingsOpen(true)} 
         goHome={goHome}
-        goToCreate={goToCreate}
-        goToHistory={goToHistory}
-        goToShops={goToShops}
-        showSettingsBtn={showSettingsBtn}
+        goToCreate={() => window.location.hash = '#create'}
+        goToHistory={() => window.location.hash = '#history'}
+        goToShops={() => window.location.hash = '#shops'}
+        showSettingsBtn={showHiddenFeatures}
       />
       
-      {page === 'home' && (
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
+      {route === 'home' && (
         <Dashboard 
-          onCreateClick={goToCreate} 
-          onOpenSettings={() => setShowSettings(true)}
+          onCreateClick={() => window.location.hash = '#create'} 
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
       
-      {page === 'create' && (
+      {route === 'create' && (
         <CreateOrderFlow 
           onCancel={goHome} 
-          onCreated={(id) => {
-            window.location.hash = `#order=${id}`;
-          }} 
-          showAiButton={showSettingsBtn}
+          onCreated={(id) => window.location.hash = `#order=${id}`}
+          showAiButton={!!process.env.API_KEY && showHiddenFeatures}
         />
       )}
       
-      {page === 'history' && (
-        <HistoryPage goHome={goHome} />
-      )}
-      
-      {page === 'shops' && (
-        <ManageShopsPage goHome={goHome} />
-      )}
-
-      {page === 'order' && orderId && (
+      {route === 'order' && orderId && (
         <OrderPage orderId={orderId} goHome={goHome} />
       )}
 
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      {route === 'history' && (
+        <HistoryPage goHome={goHome} />
+      )}
 
-      {/* Secret trigger area */}
+      {route === 'shops' && (
+        <ManageShopsPage goHome={goHome} />
+      )}
+
+      {/* Hidden Feature Trigger Area */}
       <div 
-        onClick={handleSecretClick}
-        className="fixed bottom-0 right-0 w-16 h-16 z-[9999] cursor-default"
-        title="" // Empty title to not show tooltip
+        className="fixed bottom-0 right-0 w-20 h-20 z-50 cursor-default" 
+        onDoubleClick={toggleHiddenFeatures}
+        title="Double click for admin features"
       />
     </div>
   );

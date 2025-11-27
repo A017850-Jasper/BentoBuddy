@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # 觸發部署的分支，如果是 master 請改為 master
+
+permissions:
+  contents: write # 允許 Action 推送代碼到 gh-pages 分支
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 安裝套件
+        run: npm install # 改用 install 以容許無 lock file 的情況
+
+      - name: 打包專案 (Build)
+        run: npm run build
+        env:
+          # 從 GitHub Secrets 讀取變數並注入到編譯過程
+          API_KEY: ${{ secrets.API_KEY }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }} # 如果有設定 Google Sheets 後端
+
+      - name: 部署到 GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist # Vite 預設打包輸出的資料夾
+          branch: gh-pages # 部署到的目標分支
